@@ -1,5 +1,8 @@
+#ifndef __PLAYER_H__
+#define __PLAYER_H__
 
 // struct to store a position on the board
+
 typedef struct Position {
     short signed x;
     short signed y;
@@ -14,3 +17,5 @@ typedef struct Player {
     Position log[64];
 
 } Player;
+
+#endif

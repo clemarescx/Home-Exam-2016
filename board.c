@@ -31,9 +31,11 @@ void printBoard(const Board* board){
 }
 
 //Demonstrates board functionality
+/*
 int main(void)
 {
 	Board currentBoard;
 	initBoard(&currentBoard);
 	printBoard(&currentBoard);
 }
+*/
