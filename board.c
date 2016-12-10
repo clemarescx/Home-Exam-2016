@@ -30,6 +30,18 @@ void printBoard(const Board* board){
 	printf("    a   b   c   d   e   f   g   h  \n");
 }
 
+int isOutOfBounds(int x, int y) {
+    return (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE);
+}
+
+int isEmptyField(Board board, Position pos) {
+    return board.fields[pos.x][pos.y] == EMPTY;
+}
+
+Field getField(Board gameBoard, int x, int y) {
+    return gameBoard.fields[x][y];
+}
+
 //Demonstrates board functionality
 /*
 int main(void)

@@ -1,13 +1,9 @@
 #ifndef __PLAYER_H__
 #define __PLAYER_H__
 
-// struct to store a position on the board
-short playerCount = 0;
+#include "board.h"
+#include "debug.h"
 
-typedef struct Position {
-    short signed x;
-    short signed y;
-} Position;
 
 // struct to store player information
 typedef struct Player {
@@ -20,3 +16,10 @@ typedef struct Player {
 } Player;
 
 #endif
+
+/**
+ * Initialise the players
+ * @param player
+ * @return
+ */
+int playerInit(Player *player);
