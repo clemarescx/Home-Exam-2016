@@ -13,14 +13,15 @@ short playerCount = 0;
 int playerInit(Player *player) {
 
     player->score = 2;
+    player->roundsPlayed = 0;
 
     char *nameInput = (char *) malloc(51 * sizeof(char));
     player->name = (char *) malloc(51 * sizeof(char));
 
 
-#ifdef DEBUGON
+#ifdef DEBUGMODE
 
-    snprintf(player->name, 51, "%s%d", "Pl4Y3r-number -", playerCount + 1);
+    snprintf(player->name, 51, "Pl4Y3r-number-%d", playerCount + 1);
 
 #else
     printf("Player %d, please enter your name: ", playerCount+1);

@@ -8,15 +8,19 @@
 #include "board.h"
 #include "debug.h"
 
-
 typedef struct Neighbours {
     Position list[8];
     short count;
 } Neighbours;
 
-Neighbours findNeighbours(Position pos);
 
-bool isValidMove(Player player, Position pos);
+//int isValidMove(Player player, Position pos);
+Neighbours findValidNeighbours(Position pos, Player player);
+
+int flipDirection(Position cPos, Position direction, Player player);
+
+int getValidMoves(Player player, Position *positions);
+
 
 
 #endif //__LOGIC__H

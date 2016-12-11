@@ -2,10 +2,8 @@
 // Created by clement on 07/12/16.
 //
 
-#include <stdbool.h>
-#include <stdio.h>
-
 #include "debug.h"
+
 #include "board.h"
 #include "player.h"
 #include "logic.h"
@@ -20,35 +18,64 @@
 extern Board gameBoard;
 
 
-void (*handlePos)(Position position);
+Position updatePosition(Position currentPos, Position vector, short distance);
 
-Position traverse(Position currentPos, Position vector, short distance);
+Neighbours findValidNeighbours(Position pos, Player player);
 
-void addNeighbour(Neighbours adj, Position pos);
+int traverse(Position cPos, Position direction, Player player, int(*handlePosition)(Position pos, Player _player));
+
+int fieldIsPlayerToken(Position pos, Player player);
 
 
-bool isValidMove(Player player, Position pos) {
-    Neighbours neighbours = findNeighbours(pos);
-    if (neighbours.count == 0) return false; //can't place token without neighbours
+int getValidMoves(Player player, Position *positions) {
 
-    DEBUG("Start of neighbours print for pos {%d, %d}\n", pos.x, pos.y);
-    ARRAYPRINT(neighbours)
-    DEBUG("End of neighbours print, player %c\n", player.token);
+    int validCount = 0;
 
-    for (int i = 0; i < neighbours.count; ++i) {
-        Position direction = neighbours.list[i];
-        if (getField(direction) == player.token) continue; // only interested in potentially flippable tokens
-
-        Position unitVector = vector(pos, direction);
-        short distance = 1;
-        direction = traverse(pos, unitVector, distance++);
-
-        while (!outOfBounds(direction) && (getField(direction) != EMPTY)) {
-            if (getField(direction) == player.token) return true;
-            direction = traverse(pos, unitVector, distance++);
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            Position cPos = {i, j};
+            if (getField(cPos) == EMPTY) {
+                Neighbours currentNeighbours = findValidNeighbours(cPos, player);
+                if (currentNeighbours.count > 0) positions[validCount++] = cPos;
+            }
         }
     }
-    return false;
+    return validCount;
+}
+
+int fieldIsPlayerToken(Position pos, Player player) {
+    return (getField(pos) == player.token);
+}
+
+int flipField(Position pos, Player player) {
+    int isPlayerToken = fieldIsPlayerToken(pos, player);
+
+    if (!isPlayerToken) {
+        gameBoard.fields[pos.x][pos.y] = player.token;
+    }
+    return isPlayerToken;
+}
+
+int flipDirection(Position cPos, Position direction, Player player) {
+    gameBoard.fields[cPos.x][cPos.y] = player.token;
+
+    int score = traverse(cPos, direction, player, &flipField);
+
+    return score;
+}
+
+int traverse(Position cPos, Position direction, Player player, int(*handlePosition)(Position, Player)) {
+    Position unitVector = vector(cPos, direction);
+        short distance = 1;
+    Position newPos = updatePosition(cPos, unitVector, distance++);
+
+    while (!outOfBounds(newPos) && (getField(newPos) != EMPTY)) {
+        if ((*handlePosition)(newPos, player)) {
+            return distance;
+        }
+        newPos = updatePosition(cPos, unitVector, distance++);
+    }
+    return 0;
 }
 
 /**
@@ -58,7 +85,7 @@ bool isValidMove(Player player, Position pos) {
  * @param dist
  * @return
  */
-Position traverse(Position cPos, Position vector, short dist) {
+Position updatePosition(Position cPos, Position vector, short dist) {
     Position newPos = {
             .x = cPos.x + (vector.x * dist),
             .y = cPos.y + (vector.y * dist)
@@ -67,30 +94,33 @@ Position traverse(Position cPos, Position vector, short dist) {
 }
 
 /**
- * Return a list of neighbours
+ * Return a list of valid neighbours
  * @param pos
  * @return
  */
-Neighbours findNeighbours(Position pos) {
+Neighbours findValidNeighbours(Position pos, Player player) {
     Neighbours neighbours;
     neighbours.count = 0;
     short *nCount = &(neighbours.count);
 
-    DEBUG("Neighbours of {%d, %d}:\n", pos.x, pos.y);
+    DEBUG("Valid neighbours of {%d, %d}:\n", pos.x, pos.y);
 
     for (int i = pos.x - 1; i <= pos.x + 1; ++i) {
         for (int j = pos.y - 1; j <= pos.y + 1; ++j) {
             Position newPos = {.x = (short) i, .y = (short) j};
-            DEBUG(" - {%d, %d}: ", newPos.x, newPos.y);
-            if (outOfBounds(newPos) || poscmp(pos, newPos)) {
+            if (outOfBounds(newPos) || poscmp(pos, newPos)) {   //skip if outside the board or is current position
                 DEBUG("neighbour - not valid%s", "\n");
                 continue;
             }
-            if (getField(newPos) != EMPTY) {
-                DEBUG("neighbour - valid%s", "");
-                neighbours.list[(*nCount)++] = newPos;
+            if (getField(newPos) != EMPTY && getField(newPos) != player.token) {
+                if (traverse(pos, newPos, player, &fieldIsPlayerToken)) {
+                    neighbours.list[(*nCount)++] = newPos;
+                    DEBUG(" - {%d, %d}: %c ", newPos.x, newPos.y, (char) gameBoard.fields[newPos.x][newPos.y]);
+                    DEBUG("neighbour - valid%s", "");
+                    DEBUG("%s", "\n");
+
+                }
             }
-            DEBUG("%s", "\n");
         }
     }
     return neighbours;

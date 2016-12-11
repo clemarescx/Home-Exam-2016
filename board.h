@@ -1,8 +1,6 @@
 #ifndef __BOARD_H__
 #define __BOARD_H__
 
-#include "debug.h"
-
 
 #define BOARD_SIZE 8
 
@@ -21,8 +19,8 @@ typedef struct Board{
 
 // struct to store a position on the board
 typedef struct Position {
-    short signed x;
-    short signed y;
+	int x;
+	int y;
 } Position;
 
 #endif //__BOARD_H__
@@ -31,7 +29,5 @@ void initBoard(Board* board);
 void printBoard(const Board* board);
 
 int isOutOfBounds(int x, int y);
-
-int isEmptyField(Board board, Position pos);
 
 Field getField(Board gameBoard, int x, int y);

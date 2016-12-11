@@ -4,7 +4,6 @@
 #include "board.h"
 #include "debug.h"
 
-
 // struct to store player information
 typedef struct Player {
     char *name;
@@ -12,6 +11,7 @@ typedef struct Player {
 
     short signed score;
     Position log[64];
+    int roundsPlayed;
 
 } Player;
 

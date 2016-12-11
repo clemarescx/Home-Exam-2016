@@ -3,7 +3,7 @@ project(Home_Exam__2016)
 
 set(CMAKE_CXX_STANDARD 11)
 
-SET(CMAKE_C_FLAGS "-D DEBUGON -g -Wall -Wextra")
+SET(CMAKE_C_FLAGS "-g -Wall -Wextra")
 
 set(SOURCE_FILES
     board.c

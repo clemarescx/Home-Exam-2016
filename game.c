@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <memory.h>
+
+#ifdef DEBUGMODE
+#include <time.h>
+#endif
 
 #include "board.h"
 #include "player.h"
@@ -11,16 +16,14 @@
 #define printInputPosX     (char)('A' + inputPosition.x)
 #define printInputPosY      inputPosition.y + 1
 #define printInputPosition  printInputPosX,printInputPosY
+#define getField(pos)           getField(gameBoard, pos.x, pos.y)
+
 
 //variables
 Player player1, player2;
 Board gameBoard;
 
-
-//functions
-//int playerInit(Player *player);
 int parseInput(char *str, Position *pos);
-
 
 int main(void) {
 
@@ -30,7 +33,10 @@ int main(void) {
      * - high scores
      *
      * */
+#ifdef DEBUGMODE
     DEBUG("%s\n", "DEBUG MODE IS ON");
+    srand(time(NULL));
+#endif
 
     player1.token = WHITE;
     player2.token = BLACK;
@@ -44,114 +50,148 @@ int main(void) {
     bool playerSwitch = 0;
 
     Player players[2] = {player1, player2};
+
     Player currentPlayer = players[playerSwitch];
+    Player opponent = players[!playerSwitch];
 
     bool running = true;
 
-    int loopCounter = 3;
+    int roundCounter = 0;
+    printBoard(&gameBoard);
 
-    while (loopCounter--) {
+    while (running) {
 
-        printBoard(&gameBoard);
-
-
-
-        // OPT: player can enter exit to exit the game
-        //TODO: if move is illegal, player can input again
-        //one check 8 times, NOT 8 individual checks for directions
+        roundCounter++;
+        fflush(stdout);
 
         printf("%s (%c), your move: ", currentPlayer.name, currentPlayer.token);
         char *input = calloc(10, sizeof(char));
-        int success = false;
-        Position inputPosition;
 
+        Position inputPosition = {-1, -1};
+        Neighbours validNeighbours;
 
-#ifdef DEBUGON
-        //for parsing tests + semantic tests
-        //char *wonkyEntries = {"3,F","\n", " ", "a3", " a,3", " a3", "A3", " a 3", " A , # 4", "h8"};
+        Position *validMoves = (Position *) calloc(64, sizeof(Position));
+        int validMovesCount = getValidMoves(currentPlayer, validMoves);
 
-        //for validity tests
-        char *inputs[] = {"c3", "c4", "c5", "c6 ", "d3 ", "d4", "d5", "d6 ", "e3 ", "e4", "e5", "e6 ", "f3 ", "f4 ",
-                          "f5 ", "f6", "a1", "h1", "a8", "h8"};
-        for (int i = 0; i < 20; i++) {
-            DEBUG("%s\n", "========================================================");
-            if (parseInput(inputs[i], &inputPosition)) {
-                DEBUG("Parse success: %s returns position {%i,%i}\n", inputs[i], inputPosition.x, inputPosition.y);
-                if (getField(gameBoard, inputPosition.x, inputPosition.y) == EMPTY) {
-                    DEBUG("Emptyfield success: This should show 0 (index of EMPTY):%c\n",
-                          getField(gameBoard, inputPosition.x, inputPosition.y));
-                    if (isValidMove(currentPlayer, inputPosition)) {
-                        DEBUG("ValidMove success: {%i,%i} is playable\n", inputPosition.x, inputPosition.y);
-                    }
-                }
-            }
+#ifdef DEBUGMODE
+        int validInput = false;
 
-        }
-#else
-        while (!success) {
+        while (!validInput) {
 
-            fgets(input, 10, stdin);
-
+            // Make the computer pull a random valid move to play
+            Position randPos = validMoves[rand() % validMovesCount ];
+            printf("randpos = {%i,%i}\n", randPos.x, randPos.y);
+            char x = (char) ('A' + randPos.x);
+            sprintf(input,"%c%i",x,randPos.y+1);
+            printf("input = %s\n", input);
 
             if (!parseInput(input, &inputPosition)) {
                 printf("Please enter valid coordinates (e.g. C4): ");
                 continue;
             }
 
-            //if (!isEmptyField(gameBoard, inputPosition)) {
-            if (getField(gameBoard,inputPosition.x,inputPosition.y) != EMPTY) {
+            if (getField(inputPosition) != EMPTY) {
                 printf("Field %c-%d is already occupied.\n"
                                "Please enter a valid move: ",
                        printInputPosition);
-                //(char) ('A' + inputPosition.x),
-                //inputPosition.y + 1);
                 continue;
             }
 
-            if (!isValidMove(currentPlayer, inputPosition)) {
+            validNeighbours = findValidNeighbours(inputPosition, currentPlayer);
+
+
+            if (validNeighbours.count == 0) {
                 printf("Field %c-%d is not a valid move.\n"
                                "Please try again: ",
                        printInputPosition);
-                //(char) ('A' + inputPosition.x),
-                //inputPosition.y + 1
                 continue;
             }
 
+            //printf("%c-%d is a valid move!\n", printInputPosition);
+
+            validInput = true;
+
+        }
+
+#else
+        int validInput = false;
+        while (!validInput) {
+
+            fgets(input, 10, stdin);
+
+            if (!parseInput(input, &inputPosition)) {
+                printf("Please enter valid coordinates (e.g. C4): ");
+                continue;
+            }
+
+            if (getField(inputPosition) != EMPTY) {
+                printf("Field %c-%d is already occupied.\n"
+                               "Please enter a valid move: ",
+                       printInputPosition);
+                continue;
+            }
+
+            validNeighbours = findValidNeighbours(inputPosition, currentPlayer);
+
+
+            if (validNeighbours.count == 0) {
+                printf("Field %c-%d is not a valid move.\n"
+                               "Please try again: ",
+                       printInputPosition);
+                continue;
+            }
 
             printf("%c-%d is a valid move!\n", printInputPosition);
 
-            success = true;
+            validInput = true;
 
         }
 #endif
 
 
-        //TODO: update the board according to the new move
-        //  - update score of both players
-        //  - flip affected fields
-        //  - record the executed move to an external file
+        currentPlayer.log[currentPlayer.roundsPlayed++] = inputPosition;
 
-        //TODO: check if next player has any valid moves
-        // if not, notify, and current player plays again (no playerSwitch)
-        //TODO: check if game is finished (score == 0 for one player)
+        for (int i = 0; i < validNeighbours.count; ++i) {
+            Position Direction = validNeighbours.list[i];
+            int score = flipDirection(inputPosition, Direction, currentPlayer);
+            currentPlayer.score += score;
+            opponent.score -= score;
+        }
+
+        printBoard(&gameBoard);
+
+
+        if (!getValidMoves(opponent, validMoves) && validMovesCount < 0) {
+            printf("%s has no valid moves available.\n", opponent.name);
+            printf("%s, it's your turn again!\n", currentPlayer.name);
+            playerSwitch = !playerSwitch; // toggle once to cancel the end-loop toggle;
+        }
+
+        if (opponent.score == 0 ||
+            (!getValidMoves(opponent, validMoves) && !getValidMoves(currentPlayer, validMoves))) {
+            printf("Game over, %s won the game with a score of %i!\n", currentPlayer.name, currentPlayer.score);
+            running = !running;
+        }
+
 
         playerSwitch = !playerSwitch; //switch the player index
         currentPlayer = players[playerSwitch];
-
-        if (running) running = !running;
-
-#ifndef DEBUGON
+        opponent = players[!playerSwitch];
 
         free(input);
-#endif
-    }
-    //TODO: if game finished, announce winner + exit program
+        free(validMoves);
 
-    //TODO: make a makefile that compiles project correctly
-    // only files changed since last compile ( see forelesning)
+    }
+
+    //TODO: record the executed move to an external file
+
+
 
     free(player1.name);
     free(player2.name);
+
+    //TODO: make a makefile that compiles project correctly
+    // only files changed since last compile ( see forelesning)
 
     return 0;
 }
@@ -163,12 +203,15 @@ int main(void) {
  * @return
  */
 int parseInput(char *input, Position *pos) {
+
     DEBUG("Input = '%s'\n", input);
 
     char *str = calloc(10, sizeof(char));
-    //__intptr_t strOrigin = (__intptr_t ) str;
-    void *strOrigin = str;
+
+    void *strOrigin = str; // original address, needed for free();
     sscanf(input, "%[^\n]", str);
+
+    if (strcmp(str, "exit") == 0) exit(EXIT_FAILURE);
 
     int x = -1, y = -1;
 
@@ -187,8 +230,6 @@ int parseInput(char *input, Position *pos) {
         }
         str++;
     }
-    DEBUG("x = %d\n", x);
-    DEBUG("y = %d\n", y);
 
     pos->x = (short) x;
     pos->y = (short) y;
