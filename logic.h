@@ -15,7 +15,7 @@ typedef struct Neighbours {
 
 
 //int isValidMove(Player player, Position pos);
-Neighbours findValidNeighbours(Position pos, Player player);
+Neighbours findValidNeighbours(Position inputPos, Player player);
 
 int flipDirection(Position cPos, Position direction, Player player);
 

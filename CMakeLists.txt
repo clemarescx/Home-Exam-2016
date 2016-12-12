@@ -9,6 +9,6 @@ set(SOURCE_FILES
     board.c
         game.c
         player.h
-        board.h logic.c logic.h player.c debug.h)
+        board.h logic.c logic.h player.c debug.h stringParser.c stringParser.h)
 
 add_executable(Home_Exam__2016 ${SOURCE_FILES})

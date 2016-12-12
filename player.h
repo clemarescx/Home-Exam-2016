@@ -4,22 +4,19 @@
 #include "board.h"
 #include "debug.h"
 
+#define PLAYERNAME_SIZE 20
+
 // struct to store player information
 typedef struct Player {
     char *name;
     Field token;
 
-    short signed score;
-    Position log[64];
+    int score;
+    Position log[64];   //bit of a wasted space, but since sizeof(Position) is not tremendous...
     int roundsPlayed;
 
 } Player;
 
 #endif
 
-/**
- * Initialise the players
- * @param player
- * @return
- */
 int playerInit(Player *player);
