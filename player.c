@@ -15,7 +15,6 @@ short playerCount = 0;
 int playerInit(Player *player) {
 
     player->score = 2;
-    player->roundsPlayed = 0;
 
     player->name = (char *) calloc(PLAYERNAME_SIZE, sizeof(char));
 

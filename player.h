@@ -10,10 +10,7 @@
 typedef struct Player {
     char *name;
     Field token;
-
     int score;
-    Position log[64];   //bit of a wasted space, but since sizeof(Position) is not tremendous...
-    int roundsPlayed;
 
 } Player;
 

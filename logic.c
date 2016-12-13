@@ -18,6 +18,8 @@
 
 extern Board gameBoard;
 
+// Functions
+
 Neighbours findValidNeighbours(Position inputPos, Player player);
 
 Position updatePosition(Position inputPos, Position vector, short distance);
@@ -26,7 +28,6 @@ int traverse(Position cPos, Position direction, Player player, int(*handlePositi
 
 /// used by traverse()
 int fieldIsPlayerToken(Position pos, Player player);
-
 int flipField(Position pos, Player player);
 ///
 
@@ -119,14 +120,11 @@ Neighbours findValidNeighbours(Position inputPos, Player player) {
     short *nCount = &(neighbours.count);
 
     /*
-     *
-                    DEBUG("Valid neighbours of {%d, %d}:\n", inputPos.x, inputPos.y);
-                    DEBUG("neighbour - not valid%s", "\n");
-
-                    DEBUG(" - {%d, %d}: %c ", newPos.x, newPos.y, (char) gameBoard.fields[newPos.x][newPos.y]);
-                    DEBUG("neighbour - valid%s", "");
-                    DEBUG("%s", "\n");
-
+     * DEBUG("Valid neighbours of {%d, %d}:\n", inputPos.x, inputPos.y);
+     * DEBUG("neighbour - not valid%s", "\n");
+     * DEBUG(" - {%d, %d}: %c ", newPos.x, newPos.y, (char) gameBoard.fields[newPos.x][newPos.y]);
+     * DEBUG("neighbour - valid%s", "");
+     * DEBUG("%s", "\n");
      */
 
     for (int i = inputPos.x - 1; i <= inputPos.x + 1; ++i) {

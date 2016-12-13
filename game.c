@@ -11,6 +11,7 @@
 #include "board.h"
 #include "player.h"
 #include "logic.h"
+#include "records.h"
 
 
 #define printInputPosX     (char)('A' + inputPosition.x)
@@ -143,7 +144,7 @@ int main(void) {
         }
 #endif
 
-        currentPlayer->log[currentPlayer->roundsPlayed++] = inputPosition;
+        addMoveToLog(*currentPlayer, inputPosition);
 
         int flippedCount = 0;
 
@@ -170,7 +171,7 @@ int main(void) {
 
         if (opponent->score == 0 ||
             (!getValidMoves(*opponent, validMoves) && !getValidMoves(*currentPlayer, validMoves))) {
-            printf("Game over!\n");
+            printf("\nGame over!\n\n");
             running = !running;
         }
 
@@ -185,13 +186,17 @@ int main(void) {
     //#######################
     // end of game loop
     //#######################
+    //printGameLog();
 
     //TODO: record the executed move to an external file
     Player *winner = (currentPlayer->score > opponent->score ? currentPlayer : opponent);
-    Player *loser = (currentPlayer->score < opponent->score ? currentPlayer : opponent);;
+    Player *loser = (currentPlayer->score < opponent->score ? currentPlayer : opponent);
 
     printf("%s won the game with a score of %i,\n", winner->name, winner->score);
     printf("versus %s with a score of %i.\n", loser->name, loser->score);
+
+    printLogToFile();
+
 
     free(player1.name);
     free(player2.name);
@@ -216,12 +221,12 @@ int parseInput(Position *pos) {
     char *input = calloc(5, sizeof(char));
     scanf("%5[^\n]", input);
 
-    printf("in = %s\n", input);
+    //printf("in = %s\n", input);
     int c = 0;
     while ((c = fgetc(stdin)) != EOF && c != '\n') {} //flush extra characters from stdin
 
-    DEBUG("Input = '%s'\n", input);
-    printf("input = %s\n", input);
+    //DEBUG("Input = '%s'\n", input);
+    //printf("input = %s\n", input);
 
     void *strOrigin = input; // original address, needed for free();
 

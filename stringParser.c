@@ -19,6 +19,7 @@ void parseString(char *str, size_t strSize) {
     sprintf(format, "%%%d[^\n]", (int) strSize);
 
     scanf(format, str);
+
     free(format);
 
     if (strncmp(str, "exit", strlen(str)) == 0 && strlen(str) != 0) exit(EXIT_SUCCESS);
