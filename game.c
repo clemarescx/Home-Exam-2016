@@ -12,40 +12,36 @@
 #include "player.h"
 #include "logic.h"
 #include "records.h"
+#include "render.h"
+#include "stringParser.h"
 
 
-#define printInputPosX     (char)('A' + inputPosition.x)
+#define printInputPosX      (char)('A' + inputPosition.x)
 #define printInputPosY      inputPosition.y + 1
 #define printInputPosition  printInputPosX,printInputPosY
-#define getField(pos)           getField(gameBoard, pos.x, pos.y)
+#define getField(pos)       getField(gameBoard, pos.x, pos.y)
 
 
 //variables
 Player player1, player2, players[2];
 Board gameBoard;
-const size_t CONSOLE_MSG_SIZE = 256;
+const size_t CONSOLE_MSG_SIZE = 256; //feedback should be concise, 256 is a large margin
 
 int parseInput(Position *pos);
 
 int main(void) {
 
-    /* options:
-     * - a start menu
-     * - add a load function (parse a save file with moves recorded)
-     * - high scores
-     *
-     * */
 #ifdef DEBUGMODE
     DEBUG("%s\n", "DEBUG MODE IS ON");
     srand((unsigned int) time(NULL));
 #endif
 
+    //render();
+
     player1.token = WHITE;
     player2.token = BLACK;
-
     playerInit(&player1);
     playerInit(&player2);
-
     players[0] = player1;
     players[1] = player2;
 
@@ -59,7 +55,7 @@ int main(void) {
     bool running = true;
     int roundCounter = 0;
 
-    // holder for console messages
+    // buffer for feedback messages
     char *consoleMsg = (char *) calloc(CONSOLE_MSG_SIZE, sizeof(char));
 
     //#######################
@@ -70,61 +66,37 @@ int main(void) {
         roundCounter++;
         fflush(stdout);
 
-
-        Position inputPosition = {-1, -1};
+        Position inputPosition = {-1, -1}; //initialised with invalid values
         Neighbours validNeighbours;
 
         Position *validMoves = (Position *) calloc(64, sizeof(Position));
         int validMovesCount = getValidMoves(*currentPlayer, validMoves);
 
-        snprintf(consoleMsg, CONSOLE_MSG_SIZE, "%s (%c), your move: \n", currentPlayer->name, currentPlayer->token);
+        snprintf(consoleMsg,
+                 CONSOLE_MSG_SIZE,
+                 "%s (%c), your move (enter 'exit' to quit the game): \n",
+                 currentPlayer->name,
+                 currentPlayer->token);
 
-#ifdef DEBUGMODE
         int validInput = false;
 
         while (!validInput) {
 
+
             printf("%s", consoleMsg);
+#ifdef DEBUGMODE
             DEBUG("validMovesCount = %d\n", validMovesCount);
+
             // Make the computer pull a random valid move to play
             inputPosition = validMoves[rand() % validMovesCount];
             DEBUG("randpos = {%i,%i}\n", inputPosition.x, inputPosition.y);
-
-/*
-            if (!parseInput(&inputPosition)) {
-                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "%s", "Please enter valid coordinates (e.g. C4): ");
-                continue;
-            }
-*/
-            if (getField(inputPosition) != EMPTY) {
-                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is already occupied.\nPlease enter a valid move: ",
-                         printInputPosition);
-                continue;
-            }
-
-            validNeighbours = findValidNeighbours(inputPosition, *currentPlayer);
-
-            if (validNeighbours.count == 0) {
-                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is not a valid move.\nPlease try again: ",
-                         printInputPosition);
-                continue;
-            }
-
-            validInput = true;
-
-        }
-
 #else
 
-        int validInput = false;
-        while (!validInput) {
-
-            printf("%s", consoleMsg);
-
             if (!parseInput(&inputPosition)) {
                 snprintf(consoleMsg, CONSOLE_MSG_SIZE, "%s", "Please enter valid coordinates (e.g. C4): ");
                 continue;
             }
+#endif
 
             if (getField(inputPosition) != EMPTY) {
                 snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is already occupied.\nPlease enter a valid move: ",
@@ -142,21 +114,23 @@ int main(void) {
 
             validInput = true;
         }
-#endif
 
-        addMoveToLog(*currentPlayer, inputPosition);
+        addMoveToLog(*currentPlayer, inputPosition); //record the current move
 
         int flippedCount = 0;
 
         for (int i = 0; i < validNeighbours.count; ++i) {
             Position Direction = validNeighbours.list[i];
-            // the value return is the distance which always starts with 1 and returns when 1 too many
-            // the -2 is an adjustment for this
+
+            // flipDirection returns the number of fields traversed on the board,
+            // including starting point and point after traversing (i.e trigger for traversing to stop).
+            // the -2 is an adjustment to get the correct score.
             flippedCount += flipDirection(inputPosition, Direction, *currentPlayer) - 2;
         }
 
         currentPlayer->score += flippedCount + 1; // include the current move
         opponent->score -= flippedCount;
+
         printBoard(&gameBoard);
 
         DEBUG("currentPlayer: %s - score: %d\n", currentPlayer->name, currentPlayer->score);
@@ -164,14 +138,19 @@ int main(void) {
 
 
         if (!getValidMoves(*opponent, validMoves) && validMovesCount > 1) {
-            printf("%s has no valid moves available.\n", opponent->name);
-            printf("%s, it's your turn again!\n", currentPlayer->name);
+            snprintf(consoleMsg,
+                     CONSOLE_MSG_SIZE,
+                     "%s has no valid moves available.\n%s, it's your turn again!\n",
+                     opponent->name,
+                     currentPlayer->name);
             playerSwitch = !playerSwitch; // toggle once to cancel the end-loop toggle;
         }
 
         if (opponent->score == 0 ||
             (!getValidMoves(*opponent, validMoves) && !getValidMoves(*currentPlayer, validMoves))) {
-            printf("\nGame over!\n\n");
+            snprintf(consoleMsg,
+                     CONSOLE_MSG_SIZE,
+                     "\nGame over!\n\n");
             running = !running;
         }
 
@@ -186,9 +165,11 @@ int main(void) {
     //#######################
     // end of game loop
     //#######################
-    //printGameLog();
 
-    //TODO: record the executed move to an external file
+#ifdef DEBUGMODE
+    printGameLog();
+#endif
+
     Player *winner = (currentPlayer->score > opponent->score ? currentPlayer : opponent);
     Player *loser = (currentPlayer->score < opponent->score ? currentPlayer : opponent);
 
@@ -201,9 +182,6 @@ int main(void) {
     free(player1.name);
     free(player2.name);
     free(consoleMsg);
-
-    //TODO: make a makefile that compiles project correctly
-    // only files changed since last compile ( see forelesning)
 
     return 0;
 }
@@ -218,26 +196,24 @@ int main(void) {
  */
 int parseInput(Position *pos) {
 
-    char *input = calloc(5, sizeof(char));
-    scanf("%5[^\n]", input);
+    char *input = calloc(6, sizeof(char));
 
-    //printf("in = %s\n", input);
+    parseString(input, 6);
+    DEBUG("Input = '%s'\n", input);
+
     int c = 0;
     while ((c = fgetc(stdin)) != EOF && c != '\n') {} //flush extra characters from stdin
 
-    //DEBUG("Input = '%s'\n", input);
-    //printf("input = %s\n", input);
 
-    void *strOrigin = input; // original address, needed for free();
-
-    if (strcmp(input, "exit") == 0) exit(EXIT_FAILURE);
+    // saving original address, so we can increment input and still be able to free() at the end of parsing
+    void *strOrigin = input;
 
     int x = -1, y = -1;
 
     while (*input != '\0' && (x < 0 || y < 0)) {
-        int c = toupper(*input);
-        if (c >= 'A' && c <= 'H' && x < 0) {
-            x = c - 'A';
+        int _c = toupper(*input);
+        if (_c >= 'A' && _c <= 'H' && x < 0) {
+            x = _c - 'A';
             input++;
             continue;
         }

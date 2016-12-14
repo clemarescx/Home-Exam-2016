@@ -19,7 +19,6 @@
 extern Board gameBoard;
 
 // Functions
-
 Neighbours findValidNeighbours(Position inputPos, Player player);
 
 Position updatePosition(Position inputPos, Position vector, short distance);
@@ -37,7 +36,6 @@ int flipField(Position pos, Player player);
  * Return the amount of positions added this way;
  */
 int getValidMoves(Player player, Position *positions) {
-
     int validCount = 0;
 
     for (int i = 0; i < BOARD_SIZE; ++i) {

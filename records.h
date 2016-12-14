@@ -21,10 +21,6 @@ typedef struct Records {
 
 #endif //HOME_EXAM_2016_RECORDS_H
 
-void initRecords();
-
 void addMoveToLog(Player player, Position move);
-
 void printLogToFile();
-
 void printGameLog();

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <memory.h>
 #include <stdlib.h>
+
 #include "stringParser.h"
 
 /**
@@ -15,13 +16,16 @@
 
 void parseString(char *str, size_t strSize) {
 
-    char *format = (char *) calloc(strSize, sizeof(char));
-    sprintf(format, "%%%d[^\n]", (int) strSize);
+    char *format = (char *) calloc(15, sizeof(char)); // 15 is a wide margin just to fit the regex %num[^\n]
+    sprintf(format, "%%%d[^\n]", (int) strSize - 1);
 
     scanf(format, str);
 
     free(format);
 
-    if (strncmp(str, "exit", strlen(str)) == 0 && strlen(str) != 0) exit(EXIT_SUCCESS);
+    if (strlen(str) == strlen("exit") &&
+        strncmp(str, "exit", strlen(str)) == 0 &&
+        strlen(str) != 0)
+        exit(EXIT_SUCCESS);
 
 }

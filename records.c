@@ -4,8 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "records.h"
+
+#define FILEPATH_DELIM "/"
 
 static Records records = {.roundCount = 0};
 
@@ -20,14 +23,25 @@ void addMoveToLog(Player player, Position move) {
     records.gameLog[records.roundCount++] = currentMove;
 }
 
+
 void printLogToFile() {
 
+    // http://stackoverflow.com/questions/12510874/how-can-i-check-if-a-directory-exists
+    // If the folder doesn't exist, create it with full access (777)
+    const char *directory = "gamelogs";
+    struct stat sd;
+
+    if (stat(directory, &sd) != 0) {
+        mkdir(directory, 0777);
+    }
+
     char *fileName = (char *) calloc(255, sizeof(char));
+
     int gameNumber = 1;
-    sprintf(fileName, "%s_%d.log", "gamelog", gameNumber);
+    sprintf(fileName, "%s%s%s_%d.log", directory, FILEPATH_DELIM, "gamelog", gameNumber);
 
     while (access(fileName, F_OK) != -1) {
-        sprintf(fileName, "%s_%d.log", "gamelog", ++gameNumber);
+        sprintf(fileName, "%s%s%s_%d.log", directory, FILEPATH_DELIM, "gamelog", ++gameNumber);
     }
 
     FILE *logfile;
@@ -35,6 +49,7 @@ void printLogToFile() {
         fprintf(stderr, "could not write to '%s'\n", fileName);
         exit(EXIT_FAILURE);
     }
+
     free(fileName);
 
     fprintf(logfile, "#####################################\n");
