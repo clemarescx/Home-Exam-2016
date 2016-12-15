@@ -4,7 +4,7 @@
 #include "board.h"
 #include "debug.h"
 
-#define PLAYERNAME_SIZE 20
+#define PLAYERNAME_SIZE 15
 
 // struct to store player information
 typedef struct Player {

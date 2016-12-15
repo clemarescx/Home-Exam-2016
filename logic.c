@@ -117,14 +117,6 @@ Neighbours findValidNeighbours(Position inputPos, Player player) {
     neighbours.count = 0;
     short *nCount = &(neighbours.count);
 
-    /*
-     * DEBUG("Valid neighbours of {%d, %d}:\n", inputPos.x, inputPos.y);
-     * DEBUG("neighbour - not valid%s", "\n");
-     * DEBUG(" - {%d, %d}: %c ", newPos.x, newPos.y, (char) gameBoard.fields[newPos.x][newPos.y]);
-     * DEBUG("neighbour - valid%s", "");
-     * DEBUG("%s", "\n");
-     */
-
     for (int i = inputPos.x - 1; i <= inputPos.x + 1; ++i) {
         for (int j = inputPos.y - 1; j <= inputPos.y + 1; ++j) {
             Position newPos = {.x = (short) i, .y = (short) j};

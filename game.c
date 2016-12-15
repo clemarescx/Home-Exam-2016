@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include <memory.h>
+#include <ncurses.h>
 
 #ifdef DEBUGMODE
 #include <time.h>
@@ -13,7 +13,7 @@
 #include "logic.h"
 #include "records.h"
 #include "render.h"
-#include "stringParser.h"
+#include "inputParser.h"
 
 
 #define printInputPosX      (char)('A' + inputPosition.x)
@@ -23,11 +23,14 @@
 
 
 //variables
+extern WINDOW *logWin;
 Player player1, player2, players[2];
 Board gameBoard;
 const size_t CONSOLE_MSG_SIZE = 256; //feedback should be concise, 256 is a large margin
-
+int roundCounter = 0;
 int parseInput(Position *pos);
+
+void logPrint(Player player, char *info);
 
 int main(void) {
 
@@ -36,24 +39,28 @@ int main(void) {
     srand((unsigned int) time(NULL));
 #endif
 
-    //render();
+    initscr();
+    cbreak();
+    refresh();
+    initRender();
+
+    initBoard(&gameBoard);
+    _printBoard(&gameBoard);
 
     player1.token = WHITE;
     player2.token = BLACK;
     playerInit(&player1);
     playerInit(&player2);
+    refresh();
     players[0] = player1;
     players[1] = player2;
 
     Player *currentPlayer = &players[0];
     Player *opponent = &players[1];
 
-    initBoard(&gameBoard);
-    printBoard(&gameBoard);
 
     bool playerSwitch = 0;
     bool running = true;
-    int roundCounter = 0;
 
     // buffer for feedback messages
     char *consoleMsg = (char *) calloc(CONSOLE_MSG_SIZE, sizeof(char));
@@ -63,8 +70,7 @@ int main(void) {
     //#######################
     while (running) {
 
-        roundCounter++;
-        fflush(stdout);
+        roundCounter += !playerSwitch;
 
         Position inputPosition = {-1, -1}; //initialised with invalid values
         Neighbours validNeighbours;
@@ -72,18 +78,14 @@ int main(void) {
         Position *validMoves = (Position *) calloc(64, sizeof(Position));
         int validMovesCount = getValidMoves(*currentPlayer, validMoves);
 
-        snprintf(consoleMsg,
-                 CONSOLE_MSG_SIZE,
-                 "%s (%c), your move (enter 'exit' to quit the game): \n",
-                 currentPlayer->name,
-                 currentPlayer->token);
+        wmove(logWin, 0, 0);
 
         int validInput = false;
 
         while (!validInput) {
 
+            logPrint(*currentPlayer, consoleMsg);
 
-            printf("%s", consoleMsg);
 #ifdef DEBUGMODE
             DEBUG("validMovesCount = %d\n", validMovesCount);
 
@@ -93,13 +95,13 @@ int main(void) {
 #else
 
             if (!parseInput(&inputPosition)) {
-                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "%s", "Please enter valid coordinates (e.g. C4): ");
+                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "%s", "Please enter a valid field.");
                 continue;
             }
 #endif
 
             if (getField(inputPosition) != EMPTY) {
-                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is already occupied.\nPlease enter a valid move: ",
+                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is already taken.",
                          printInputPosition);
                 continue;
             }
@@ -107,7 +109,7 @@ int main(void) {
             validNeighbours = findValidNeighbours(inputPosition, *currentPlayer);
 
             if (validNeighbours.count == 0) {
-                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is not a valid move.\nPlease try again: ",
+                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is illegal.",
                          printInputPosition);
                 continue;
             }
@@ -131,7 +133,7 @@ int main(void) {
         currentPlayer->score += flippedCount + 1; // include the current move
         opponent->score -= flippedCount;
 
-        printBoard(&gameBoard);
+        _printBoard(&gameBoard);
 
         DEBUG("currentPlayer: %s - score: %d\n", currentPlayer->name, currentPlayer->score);
         DEBUG("opponent: %s - score: %d\n\n\n", opponent->name, opponent->score);
@@ -140,7 +142,7 @@ int main(void) {
         if (!getValidMoves(*opponent, validMoves) && validMovesCount > 1) {
             snprintf(consoleMsg,
                      CONSOLE_MSG_SIZE,
-                     "%s has no valid moves available.\n%s, it's your turn again!\n",
+                     "%s has no valid moves.\n%s, it's your turn again!\n",
                      opponent->name,
                      currentPlayer->name);
             playerSwitch = !playerSwitch; // toggle once to cancel the end-loop toggle;
@@ -148,9 +150,8 @@ int main(void) {
 
         if (opponent->score == 0 ||
             (!getValidMoves(*opponent, validMoves) && !getValidMoves(*currentPlayer, validMoves))) {
-            snprintf(consoleMsg,
-                     CONSOLE_MSG_SIZE,
-                     "\nGame over!\n\n");
+
+            //game over
             running = !running;
         }
 
@@ -173,15 +174,24 @@ int main(void) {
     Player *winner = (currentPlayer->score > opponent->score ? currentPlayer : opponent);
     Player *loser = (currentPlayer->score < opponent->score ? currentPlayer : opponent);
 
-    printf("%s won the game with a score of %i,\n", winner->name, winner->score);
-    printf("versus %s with a score of %i.\n", loser->name, loser->score);
-
+    refreshLog();
+    mvwprintw(logWin, 0, 0, "%s won the game ", winner->name);
+    mvwprintw(logWin, 1, 0, "with a score of %i,", winner->score);
+    mvwprintw(logWin, 2, 0, "==================");
+    mvwprintw(logWin, 3, 0, "versus %s", loser->name);
+    mvwprintw(logWin, 4, 0, "with a score of %i.", loser->score);
     printLogToFile();
+
+    mvwprintw(logWin, 6, 0, "Press any key to exit", loser->score);
+    wrefresh(logWin);
+    getch();
 
 
     free(player1.name);
     free(player2.name);
     free(consoleMsg);
+
+    terminateRender();
 
     return 0;
 }
@@ -201,8 +211,8 @@ int parseInput(Position *pos) {
     parseString(input, 6);
     DEBUG("Input = '%s'\n", input);
 
-    int c = 0;
-    while ((c = fgetc(stdin)) != EOF && c != '\n') {} //flush extra characters from stdin
+    //int c = 0;
+    //while ((c = fgetc(stdin)) != EOF && c != '\n') {} //flush extra characters from stdin
 
 
     // saving original address, so we can increment input and still be able to free() at the end of parsing
@@ -235,3 +245,29 @@ int parseInput(Position *pos) {
     return x >= 0 && y >= 0;
 }
 
+
+// returns the ncurses version of a player token
+chtype ncursesToken(Player player) {
+    switch (player.token) {
+        case BLACK:
+            return ACS_DIAMOND;
+        case WHITE:
+            return ACS_BULLET;
+        default:
+            return (chtype) " ";
+    }
+}
+
+// Formats log information
+void logPrint(Player player, char *info) {
+    refreshLog();
+    mvwprintw(logWin, 0, 0, "Round %d", roundCounter);
+    mvwprintw(logWin, 1, 0, "%s (", player.name);
+    waddch(logWin, ncursesToken(player));
+    wprintw(logWin, ")");
+    mvwprintw(logWin, 2, 0, "Score: %d", player.score);
+
+    mvwprintw(logWin, logWin->_maxy - 3, 0, "%s", info);
+    mvwprintw(logWin, logWin->_maxy - 1, 0, "Enter 'exit' to quit");
+    wrefresh(logWin);
+}

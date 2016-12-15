@@ -7,8 +7,12 @@
 
 #ifdef DEBUGMODE
 
-#define DEBUG(str, ...) fprintf(stderr, str, __VA_ARGS__)
-#define ARRAYPRINT(array)   for(int i = 0; i < array.count; i++){ DEBUG("{%d,%d}\n", array.list[i].x,array.list[i].y);}
+/* Commented out... does not play well with ncurses.
+//#define DEBUG(str, ...) wprintw(logWin, str, __VA_ARGS__)
+//#define ARRAYPRINT(array)   for(int i = 0; i < array.count; i++){ DEBUG("{%d,%d}\n", array.list[i].x,array.list[i].y);}
+*/
+#define DEBUG(str, ...)
+#define ARRAYPRINT(array)
 
 #else
 #define DEBUG(str, ...)

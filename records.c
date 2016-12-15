@@ -23,7 +23,10 @@ void addMoveToLog(Player player, Position move) {
     records.gameLog[records.roundCount++] = currentMove;
 }
 
-
+/**
+ * Prints the record of the current game to a text log file
+ *
+ */
 void printLogToFile() {
 
     // http://stackoverflow.com/questions/12510874/how-can-i-check-if-a-directory-exists
@@ -67,7 +70,11 @@ void printLogToFile() {
     fclose(logfile);
 }
 
-
+/**
+ * For debugging purposes only.
+ * Prints in terminal what should be printed in
+ * the log file
+ */
 void printGameLog() {
 
     printf("#####################################\n");

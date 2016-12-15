@@ -1,10 +1,10 @@
 CC = gcc
 
-SDL_LIB = -lncurses -I/usr/include
+NCURSES_LIB = -lncurses -I/usr/include
 CFLAGS = -g -Wall -Wextra -std=c11
 
-DEPS = board.h logic.h player.h debug.h stringParser.h records.h debug.h render.h
-OBJ = game.o logic.o player.o board.o stringParser.o records.o render.o render.o
+DEPS = board.h logic.h player.h debug.h inputParser.h records.h debug.h render.h
+OBJ = game.o logic.o player.o board.o inputParser.o records.o render.o render.o
 OTHELLO = othello
 
 all: $(OTHELLO)
@@ -13,7 +13,7 @@ all: $(OTHELLO)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(OTHELLO): $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(SDL_LIB)
+	$(CC) -o $@ $^ $(CFLAGS) $(NCURSES_LIB)
 
 clean:
 	rm -f $(OBJ)
