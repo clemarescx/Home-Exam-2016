@@ -30,13 +30,11 @@ WINDOW *create_newwin(int height, int width, int starty, int startx, char *title
 void destroy_win(WINDOW *local_win);
 
 void initBoardWin() {
-    //if(boardWin != NULL) destroy_win(boardWin);
     boardWin = create_newwin(LINES, width, starty, startx, "Board");
     clearok(boardWin, true);
 }
 
 void initLogWin() {
-    //if(logWin != NULL) destroy_win(boardWin);
     logWin = create_newwin(height, COLS - width, starty, width, "Console Log");
     logWin->_begx++;
     logWin->_begy++;
@@ -46,7 +44,6 @@ void initLogWin() {
 }
 
 void initInputWin() {
-    //if(inputWin != NULL) destroy_win(inputWin);
     inputWin = create_newwin(LINES - height, COLS - width, height, width, "Input");
     mvwprintw(inputWin, 1, 1, "> ");
     wrefresh(inputWin);

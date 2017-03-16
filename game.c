@@ -19,18 +19,20 @@
 #define printInputPosX      (char)('A' + inputPosition.x)
 #define printInputPosY      inputPosition.y + 1
 #define printInputPosition  printInputPosX,printInputPosY
-#define getField(pos)       getField(gameBoard, pos.x, pos.y)
 
 
 //variables
 extern WINDOW *logWin;
+extern Board gameBoard;
 Player player1, player2, players[2];
-Board gameBoard;
 const size_t CONSOLE_MSG_SIZE = 256; //feedback should be concise, 256 is a large margin
 int roundCounter = 0;
 int parseInput(Position *pos);
 
-void logPrint(Player player, char *info);
+void logPrint(Player *player, char *info);
+
+
+void Init();
 
 int main(void) {
 
@@ -39,21 +41,7 @@ int main(void) {
     srand((unsigned int) time(NULL));
 #endif
 
-    initscr();
-    cbreak();
-    refresh();
-    initRender();
-
-    initBoard(&gameBoard);
-    _printBoard(&gameBoard);
-
-    player1.token = WHITE;
-    player2.token = BLACK;
-    playerInit(&player1);
-    playerInit(&player2);
-    refresh();
-    players[0] = player1;
-    players[1] = player2;
+    Init();
 
     Player *currentPlayer = &players[0];
     Player *opponent = &players[1];
@@ -76,7 +64,7 @@ int main(void) {
         Neighbours validNeighbours;
 
         Position *validMoves = (Position *) calloc(64, sizeof(Position));
-        int validMovesCount = getValidMoves(*currentPlayer, validMoves);
+        int validMovesCount = getValidMoves(currentPlayer, validMoves);
 
         wmove(logWin, 0, 0);
 
@@ -84,7 +72,7 @@ int main(void) {
 
         while (!validInput) {
 
-            logPrint(*currentPlayer, consoleMsg);
+            logPrint(currentPlayer, consoleMsg);
 
 #ifdef DEBUGMODE
             DEBUG("validMovesCount = %d\n", validMovesCount);
@@ -100,13 +88,13 @@ int main(void) {
             }
 #endif
 
-            if (getField(inputPosition) != EMPTY) {
+            if (getField(&inputPosition) != EMPTY) {
                 snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is already taken.",
                          printInputPosition);
                 continue;
             }
 
-            validNeighbours = findValidNeighbours(inputPosition, *currentPlayer);
+            validNeighbours = findValidNeighbours(&inputPosition, currentPlayer);
 
             if (validNeighbours.count == 0) {
                 snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is illegal.",
@@ -127,7 +115,7 @@ int main(void) {
             // flipDirection returns the number of fields traversed on the board,
             // including starting point and point after traversing (i.e trigger for traversing to stop).
             // the -2 is an adjustment to get the correct score.
-            flippedCount += flipDirection(inputPosition, Direction, *currentPlayer) - 2;
+            flippedCount += flipDirection(&inputPosition, &Direction, currentPlayer) - 2;
         }
 
         currentPlayer->score += flippedCount + 1; // include the current move
@@ -139,7 +127,7 @@ int main(void) {
         DEBUG("opponent: %s - score: %d\n\n\n", opponent->name, opponent->score);
 
 
-        if (!getValidMoves(*opponent, validMoves) && validMovesCount > 1) {
+        if (!getValidMoves(opponent, validMoves) && validMovesCount > 1) {
             snprintf(consoleMsg,
                      CONSOLE_MSG_SIZE,
                      "%s has no valid moves.\n%s, it's your turn again!\n",
@@ -149,7 +137,7 @@ int main(void) {
         }
 
         if (opponent->score == 0 ||
-            (!getValidMoves(*opponent, validMoves) && !getValidMoves(*currentPlayer, validMoves))) {
+            (!getValidMoves(opponent, validMoves) && !getValidMoves(currentPlayer, validMoves))) {
 
             //game over
             running = !running;
@@ -196,6 +184,27 @@ int main(void) {
     return 0;
 }
 
+
+void Init() {
+    initscr();
+    cbreak();
+    refresh();
+    initRender();
+
+    initBoard();
+    _printBoard(&gameBoard);
+
+    player1.token = WHITE;
+    player2.token = BLACK;
+    playerInit(&player1);
+    playerInit(&player2);
+    refresh();
+    players[0] = player1;
+    players[1] = player2;
+}
+
+
+
 /**
  * Parse and validates the input
  * Will accept any input containing a valid char for columns
@@ -210,10 +219,6 @@ int parseInput(Position *pos) {
 
     parseString(input, 6);
     DEBUG("Input = '%s'\n", input);
-
-    //int c = 0;
-    //while ((c = fgetc(stdin)) != EOF && c != '\n') {} //flush extra characters from stdin
-
 
     // saving original address, so we can increment input and still be able to free() at the end of parsing
     void *strOrigin = input;
@@ -247,8 +252,8 @@ int parseInput(Position *pos) {
 
 
 // returns the ncurses version of a player token
-chtype ncursesToken(Player player) {
-    switch (player.token) {
+chtype ncursesToken(Player *player) {
+    switch (player->token) {
         case BLACK:
             return ACS_DIAMOND;
         case WHITE:
@@ -259,13 +264,13 @@ chtype ncursesToken(Player player) {
 }
 
 // Formats log information
-void logPrint(Player player, char *info) {
+void logPrint(Player *player, char *info) {
     refreshLog();
     mvwprintw(logWin, 0, 0, "Round %d", roundCounter);
-    mvwprintw(logWin, 1, 0, "%s (", player.name);
+    mvwprintw(logWin, 1, 0, "%s (", player->name);
     waddch(logWin, ncursesToken(player));
     wprintw(logWin, ")");
-    mvwprintw(logWin, 2, 0, "Score: %d", player.score);
+    mvwprintw(logWin, 2, 0, "Score: %d", player->score);
 
     mvwprintw(logWin, logWin->_maxy - 3, 0, "%s", info);
     mvwprintw(logWin, logWin->_maxy - 1, 0, "Enter 'exit' to quit");

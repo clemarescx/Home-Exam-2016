@@ -1,18 +1,20 @@
 #include "board.h"
 #include <stdio.h>
 
+Board gameBoard;
+Board *pBoard = &gameBoard;
 
 //Set board to starting position
-void initBoard(Board* board){
+void initBoard() {
 	for(int y=0;y<BOARD_SIZE;y++){
 		for(int x=0;x<BOARD_SIZE;x++){
-			board->fields[x][y]=EMPTY;
+            pBoard->fields[x][y] = EMPTY;
 		}
 	}
-	board->fields[3][3]=WHITE;
-	board->fields[4][4]=WHITE;
-	board->fields[3][4]=BLACK;
-	board->fields[4][3]=BLACK;
+    pBoard->fields[3][3] = WHITE;
+    pBoard->fields[4][4] = WHITE;
+    pBoard->fields[3][4] = BLACK;
+    pBoard->fields[4][3] = BLACK;
 }
 
 //Prints the board using traditional ascii-art type graphics 
@@ -34,9 +36,14 @@ int isOutOfBounds(int x, int y) {
     return (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE);
 }
 
-
+/*
 Field getField(Board gameBoard, int x, int y) {
     return gameBoard.fields[x][y];
+}
+*/
+
+Field getField(Position *position) {
+    return pBoard->fields[position->x][position->y];
 }
 
 //Demonstrates board functionality

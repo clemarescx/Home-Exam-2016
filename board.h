@@ -25,7 +25,8 @@ typedef struct Position {
 
 #endif //__BOARD_H__
 
-void initBoard(Board* board);
+void initBoard();
 void printBoard(const Board* board);
 int isOutOfBounds(int x, int y);
-Field getField(Board gameBoard, int x, int y);
+
+Field getField(Position *position);
