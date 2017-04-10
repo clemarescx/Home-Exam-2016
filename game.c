@@ -4,9 +4,7 @@
 //#include <ctype.h>
 #include <ncurses.h>
 
-#ifdef DEBUGMODE
 #include <time.h>
-#endif
 
 #include "board.h"
 #include "player.h"
@@ -26,7 +24,7 @@
 
 //variables
 extern WINDOW *msgWindow;
-extern Board gameBoard;
+extern Board gBoard;
 
 Player player1, player2, players[2];
 Player *currentPlayer;
@@ -69,8 +67,8 @@ int main(void) {
 
 #ifdef DEBUGMODE
     DEBUG("%s\n", "DEBUG MODE IS ON");
-    srand((unsigned int) time(NULL));
 #endif
+    srand((unsigned int) time(NULL));
 
 
 
@@ -117,7 +115,7 @@ int main(void) {
 
 
         validMoves = (Position *) calloc(32, sizeof(Position));
-        int validMovesCount = getValidMoves(currentPlayer, validMoves);
+        int validMovesCount = getValidMoves(currentPlayer, validMoves, &gBoard);
 
         wmove(msgWindow, 0, 0);
 
@@ -133,19 +131,19 @@ int main(void) {
 
         for (int i = 0; i < validNeighbours.count; ++i) {
             Position direction = validNeighbours.list[i];
-            flippedCount += flipDirection(&inputPosition, &direction, currentPlayer) - 2;
+            flippedCount += flipDirection(&inputPosition, &direction, currentPlayer, &gBoard) - 2;
         }
 
         currentPlayer->score += flippedCount + 1; // include the current move
         opponent->score -= flippedCount;
 
-        _printBoard(&gameBoard);
+        _printBoard(&gBoard);
 
         DEBUG("currentPlayer: %s - score: %d\n", currentPlayer->name, currentPlayer->score);
         DEBUG("opponent: %s - score: %d\n\n\n", opponent->name, opponent->score);
 
 
-        if (!getValidMoves(opponent, validMoves) && validMovesCount > 1) {
+        if (!getValidMoves(opponent, validMoves, &gBoard) && validMovesCount > 1) {
             snprintf(consoleMsg,
                      CONSOLE_MSG_SIZE,
                      "%s has no valid moves.\n%s, it's your turn again!\n",
@@ -155,7 +153,7 @@ int main(void) {
         }
 
         if (opponent->score == 0 ||
-            (!getValidMoves(opponent, validMoves) && !getValidMoves(currentPlayer, validMoves))) {
+            (!getValidMoves(opponent, validMoves, &gBoard) && !getValidMoves(currentPlayer, validMoves, &gBoard))) {
 
             //game over
             running = !running;
@@ -207,7 +205,7 @@ void initialiseView() {
     initRender();
 
     initBoard();
-    _printBoard(&gameBoard);
+    _printBoard(&gBoard);
 
 }
 
@@ -357,13 +355,13 @@ void getInput(Position *inputPosition) {
             continue;
         }
 
-        if (getField(&gameBoard, inputPosition) != EMPTY) {
+        if (getField(&gBoard, inputPosition) != EMPTY) {
             snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is already taken.",
                      printInputPosition(inputPosition));
             continue;
         }
 #endif
-        validNeighbours = getFlippableTokens(inputPosition, currentPlayer);
+        validNeighbours = getFlippableTokens(inputPosition, currentPlayer, &gBoard);
 
         if (validNeighbours.count == 0) {
             snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is illegal.",

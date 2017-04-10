@@ -16,10 +16,10 @@ typedef struct PositionList {
 
 
 //int isValidMove(Player player, Position pos);
-PositionList getFlippableTokens(Position *inputPos, Player *player);
+PositionList getFlippableTokens(Position *inputPos, Player *player, Board *);
 
-int flipDirection(Position *currentPosition, Position *direction, Player *player);
+int flipDirection(Position *currentPosition, Position *direction, Player *player, Board*);
 
-int getValidMoves(Player *player, Position *possibleMoves);
+int getValidMoves(Player *player, Position *possibleMoves, Board*);
 
 #endif //__LOGIC__H

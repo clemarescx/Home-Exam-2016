@@ -1,7 +1,7 @@
 #ifndef __BOARD_H__
 #define __BOARD_H__
 
-#include "logic.h"
+//#include "logic.h"
 
 
 #define BOARD_SIZE 8
@@ -26,7 +26,6 @@ typedef struct Position {
 } Position;
 
 
-#endif //__BOARD_H__
 
 void initBoard();
 
@@ -37,3 +36,5 @@ int outOfBounds(Position pos);
 Field getField(Board *board, Position *position);
 
 int poscmp(Position *pos1, Position *pos2);
+
+#endif //__BOARD_H__

@@ -1,8 +1,8 @@
 #include "board.h"
 #include <stdio.h>
 
-Board gameBoard;
-Board *pBoard = &gameBoard;
+Board gBoard;
+Board *pBoard = &gBoard;
 
 //Set board to starting position
 void initBoard() {

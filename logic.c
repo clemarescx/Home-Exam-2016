@@ -7,19 +7,19 @@
 #include "logic.h"
 
 
-extern Board gameBoard;
+extern Board gBoard;
 
 // Functions
 
 Position updatePosition(Position *inputPos, Position *unitVector, short distance);
 
-int traverse(Position *currentPosition, Position *direction, Player *player,
-             int(*handlePosition)(Position *pos, Player *_player));
+int traverse(Position *, Position *, Player *,
+             int(*handlePosition)(Position*, Player*, Board*), Board*);
 
 /// used by traverse()
-int fieldIsPlayerToken(Position *pos, Player *player);
+int fieldIsPlayerToken(Position *, Player *, Board*);
 
-int flipField(Position *pos, Player *player);
+int flipField(Position *, Player *, Board*);
 ///
 
 
@@ -27,15 +27,16 @@ int flipField(Position *pos, Player *player);
  * Fills *positions with all valid moves available for player;
  * Return the amount of positions added this way;
  */
-int getValidMoves(Player *player, Position *possibleMoves) {
+int getValidMoves(Player *player, Position *possibleMoves, Board *gameBoard) {
     int validMovesCount = 0;
     Position currentPosition;
 
     for (int i = 0; i < BOARD_SIZE; ++i)
         for (int j = 0; j < BOARD_SIZE; ++j) {
-            currentPosition = {.x = i, .y = j};
-            if (getField(&gameBoard, &currentPosition) == EMPTY) {
-                PositionList flippable = getFlippableTokens(&currentPosition, player);
+            currentPosition.x = i;
+            currentPosition.y = j;
+            if (getField(gameBoard, &currentPosition) == EMPTY) {
+                PositionList flippable = getFlippableTokens(&currentPosition, player, gameBoard);
                 if (flippable.count > 0)
                     possibleMoves[validMovesCount++] = currentPosition;
             }
@@ -47,10 +48,10 @@ int getValidMoves(Player *player, Position *possibleMoves) {
 /*
  * Flips all tokens in a direction
  */
-int flipDirection(Position *currentPosition, Position *direction, Player *player) {
-    gameBoard.fields[currentPosition->x][currentPosition->y] = player->token;
+int flipDirection(Position *currentPosition, Position *direction, Player *player, Board *gameBoard) {
+    gameBoard->fields[currentPosition->x][currentPosition->y] = player->token;
 
-    int score = traverse(currentPosition, direction, player, &flipField);
+    int score = traverse(currentPosition, direction, player, &flipField, gameBoard);
 
     return score;
 }
@@ -59,8 +60,11 @@ int flipDirection(Position *currentPosition, Position *direction, Player *player
  * Iterates and calls a function on each field in a given direction
  * until an empty field or the board's limits are met;
  */
-int
-traverse(Position *currentPosition, Position *direction, Player *player, int(*handlePosition)(Position *, Player *)) {
+int traverse(Position *currentPosition,
+             Position *direction,
+             Player *player,
+             int(*handlePosition)(Position *, Player *, Board*),
+             Board *gameBoard) {
 
     Position unitVector = {
             .x = direction->x - currentPosition->x,
@@ -71,8 +75,8 @@ traverse(Position *currentPosition, Position *direction, Player *player, int(*ha
 
     Position newPos = updatePosition(currentPosition, &unitVector, distance++);
 
-    while (!outOfBounds(newPos) && (getField(&gameBoard, &newPos) != EMPTY)) {
-        if ((*handlePosition)(&newPos, player)) {
+    while (!outOfBounds(newPos) && (getField(gameBoard, &newPos) != EMPTY)) {
+        if ((*handlePosition)(&newPos, player, gameBoard)) {
             return distance;
         }
         newPos = updatePosition(currentPosition, &unitVector, distance++);
@@ -82,16 +86,16 @@ traverse(Position *currentPosition, Position *direction, Player *player, int(*ha
 
 
 // checks if the given position is player.token
-int fieldIsPlayerToken(Position *pos, Player *player) {
-    return (getField(&gameBoard, pos) == player->token);
+int fieldIsPlayerToken(Position *pos, Player *player, Board *gameBoard) {
+    return (getField(gameBoard, pos) == player->token);
 }
 
 // flips a token
-int flipField(Position *pos, Player *player) {
-    int isPlayerToken = fieldIsPlayerToken(pos, player);
+int flipField(Position *pos, Player *player, Board *gameBoard) {
+    int isPlayerToken = fieldIsPlayerToken(pos, player, gameBoard);
 
     if (!isPlayerToken) {
-        gameBoard.fields[pos->x][pos->y] = player->token;
+        gameBoard->fields[pos->x][pos->y] = player->token;
     }
     return isPlayerToken;
 }
@@ -110,7 +114,7 @@ Position updatePosition(Position *inputPos, Position *unitVector, short distance
 }
 
 
-PositionList getAdjacentTokens(Position *pos) {
+PositionList getAdjacentTokens(Position *pos, Board *gameBoard) {
     PositionList adjacent;
     adjacent.count = 0;
 
@@ -120,10 +124,11 @@ PositionList getAdjacentTokens(Position *pos) {
                     .x = (short) i,
                     .y = (short) j
             };
-            if (outOfBounds(neighbourPos) || poscmp(pos, &neighbourPos))    //skip if outside the board or is current position
+            if (outOfBounds(neighbourPos) ||
+                poscmp(pos, &neighbourPos))    //skip if outside the board or is current position
                 continue;
 
-            if (getField(&gameBoard, &neighbourPos) != EMPTY)
+            if (getField(gameBoard, &neighbourPos) != EMPTY)
                 adjacent.list[adjacent.count++] = neighbourPos;
         }
     return adjacent;
@@ -133,17 +138,17 @@ PositionList getAdjacentTokens(Position *pos) {
 /**
  * Return a list of valid neighbours
  */
-PositionList getFlippableTokens(Position *inputPos, Player *player) {
+PositionList getFlippableTokens(Position *inputPos, Player *player, Board *gameBoard) {
 
     PositionList flippableDirections;
     flippableDirections.count = 0;
 
-    PositionList neighbours = getAdjacentTokens(inputPos);
+    PositionList neighbours = getAdjacentTokens(inputPos, gameBoard);
 
     while (neighbours.count--) {
         Position currentNeighbour = neighbours.list[neighbours.count];
-        if (getField(&gameBoard, &currentNeighbour) != player->token) {
-            int score = traverse(inputPos, &currentNeighbour, player, &fieldIsPlayerToken);
+        if (getField(gameBoard, &currentNeighbour) != player->token) {
+            int score = traverse(inputPos, &currentNeighbour, player, &fieldIsPlayerToken, gameBoard);
             if (score > 0)
                 flippableDirections.list[flippableDirections.count++] = currentNeighbour;
         }

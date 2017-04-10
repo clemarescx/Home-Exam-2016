@@ -7,7 +7,8 @@
 #include "render.h"
 
 
-extern Board gameBoard;
+//extern Board gBoard;
+
 const int height = 20,
         width = 50,
         starty = 0,
