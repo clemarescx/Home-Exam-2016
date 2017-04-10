@@ -9,6 +9,10 @@
 
 #endif //HOME_EXAM_2016_RENDER_H
 
+#ifndef NCURSES
+#define NCURSES
+#endif
+
 int initRender();
 
 void initBoardWin();

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <ctype.h>
+//#include <ctype.h>
 #include <ncurses.h>
 
 #ifdef DEBUGMODE
@@ -14,25 +14,56 @@
 #include "records.h"
 #include "render.h"
 #include "inputParser.h"
+#include "AI_Logic.h"
 
 
-#define printInputPosX      (char)('A' + inputPosition.x)
-#define printInputPosY      inputPosition.y + 1
-#define printInputPosition  printInputPosX,printInputPosY
+#define printInputPosX(x)      (char)('A' + x)
+#define printInputPosY(y)      y + 1
+#define printInputPosition(in)  printInputPosX(in->x),printInputPosY(in->y)
+#define WIDTH 30
+#define HEIGHT 10
 
 
 //variables
-extern WINDOW *logWin;
+extern WINDOW *msgWindow;
 extern Board gameBoard;
+
 Player player1, player2, players[2];
+Player *currentPlayer;
+
+char *consoleMsg;
 const size_t CONSOLE_MSG_SIZE = 256; //feedback should be concise, 256 is a large margin
 int roundCounter = 0;
-int parseInput(Position *pos);
+
+
+static int startx = 0, starty = 0;
+char *choices[] = {
+        "Player vs Player",
+        "Player vs Computer",
+        "Debug mode",
+        "Exit"
+};
+int n_choices = sizeof(choices) / sizeof(char *);
+
+Position inputPosition;
+Position *validMoves;
+PositionList validNeighbours;
+
+void getInput(Position *inputPosition);
+
+void print_menu(WINDOW *menu_win, int highlight);
 
 void logPrint(Player *player, char *info);
 
+void initialiseView();
 
-void Init();
+void initialisePlayers(int choice);
+
+int selectMenuOption();
+
+void executeMenuChoice(int choice);
+
+bool noValidMovesLeft();
 
 int main(void) {
 
@@ -41,17 +72,37 @@ int main(void) {
     srand((unsigned int) time(NULL));
 #endif
 
-    Init();
 
-    Player *currentPlayer = &players[0];
+
+    // #########################################################
+
+    int choice = selectMenuOption();
+
+
+    // #########################################################
+
+    player1.token = WHITE;
+    player2.token = BLACK;
+
+
+#ifdef DEBUGMODE
+    choice = 3;
+#endif
+
+    initialiseView();
+    initialisePlayers(choice);
+
+
+    // buffer for feedback messages
+    consoleMsg = (char *) calloc(CONSOLE_MSG_SIZE, sizeof(char));
+
+    currentPlayer = &players[0];
     Player *opponent = &players[1];
 
 
     bool playerSwitch = 0;
     bool running = true;
 
-    // buffer for feedback messages
-    char *consoleMsg = (char *) calloc(CONSOLE_MSG_SIZE, sizeof(char));
 
     //#######################
     // Start of game loop
@@ -60,49 +111,20 @@ int main(void) {
 
         roundCounter += !playerSwitch;
 
-        Position inputPosition = {-1, -1}; //initialised with invalid values
-        Neighbours validNeighbours;
+        // initialised with invalid values
+        inputPosition.x = -1;
+        inputPosition.y = -1;
 
-        Position *validMoves = (Position *) calloc(64, sizeof(Position));
+
+        validMoves = (Position *) calloc(32, sizeof(Position));
         int validMovesCount = getValidMoves(currentPlayer, validMoves);
 
-        wmove(logWin, 0, 0);
+        wmove(msgWindow, 0, 0);
 
-        int validInput = false;
-
-        while (!validInput) {
-
-            logPrint(currentPlayer, consoleMsg);
-
-#ifdef DEBUGMODE
-            DEBUG("validMovesCount = %d\n", validMovesCount);
-
-            // Make the computer pull a random valid move to play
-            inputPosition = validMoves[rand() % validMovesCount];
-            DEBUG("randpos = {%i,%i}\n", inputPosition.x, inputPosition.y);
-#else
-
-            if (!parseInput(&inputPosition)) {
-                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "%s", "Please enter a valid field.");
-                continue;
-            }
-#endif
-
-            if (getField(&inputPosition) != EMPTY) {
-                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is already taken.",
-                         printInputPosition);
-                continue;
-            }
-
-            validNeighbours = findValidNeighbours(&inputPosition, currentPlayer);
-
-            if (validNeighbours.count == 0) {
-                snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is illegal.",
-                         printInputPosition);
-                continue;
-            }
-
-            validInput = true;
+        if (currentPlayer->type == HUMAN) {
+            getInput(&inputPosition);
+        } else {
+            inputPosition = findBestMove(currentPlayer, opponent, validMoves, validMovesCount);
         }
 
         addMoveToLog(*currentPlayer, inputPosition); //record the current move
@@ -110,12 +132,8 @@ int main(void) {
         int flippedCount = 0;
 
         for (int i = 0; i < validNeighbours.count; ++i) {
-            Position Direction = validNeighbours.list[i];
-
-            // flipDirection returns the number of fields traversed on the board,
-            // including starting point and point after traversing (i.e trigger for traversing to stop).
-            // the -2 is an adjustment to get the correct score.
-            flippedCount += flipDirection(&inputPosition, &Direction, currentPlayer) - 2;
+            Position direction = validNeighbours.list[i];
+            flippedCount += flipDirection(&inputPosition, &direction, currentPlayer) - 2;
         }
 
         currentPlayer->score += flippedCount + 1; // include the current move
@@ -163,15 +181,15 @@ int main(void) {
     Player *loser = (currentPlayer->score < opponent->score ? currentPlayer : opponent);
 
     refreshLog();
-    mvwprintw(logWin, 0, 0, "%s won the game ", winner->name);
-    mvwprintw(logWin, 1, 0, "with a score of %i,", winner->score);
-    mvwprintw(logWin, 2, 0, "==================");
-    mvwprintw(logWin, 3, 0, "versus %s", loser->name);
-    mvwprintw(logWin, 4, 0, "with a score of %i.", loser->score);
+    mvwprintw(msgWindow, 0, 0, "%s won the game ", winner->name);
+    mvwprintw(msgWindow, 1, 0, "with a score of %i,", winner->score);
+    mvwprintw(msgWindow, 2, 0, "==================");
+    mvwprintw(msgWindow, 3, 0, "versus %s", loser->name);
+    mvwprintw(msgWindow, 4, 0, "with a score of %i.", loser->score);
     printLogToFile();
 
-    mvwprintw(logWin, 6, 0, "Press any key to exit", loser->score);
-    wrefresh(logWin);
+    mvwprintw(msgWindow, 6, 0, "Press any key to exit", loser->score);
+    wrefresh(msgWindow);
     getch();
 
 
@@ -185,69 +203,38 @@ int main(void) {
 }
 
 
-void Init() {
-    initscr();
-    cbreak();
-    refresh();
+void initialiseView() {
     initRender();
 
     initBoard();
     _printBoard(&gameBoard);
 
-    player1.token = WHITE;
-    player2.token = BLACK;
-    playerInit(&player1);
-    playerInit(&player2);
-    refresh();
-    players[0] = player1;
-    players[1] = player2;
 }
 
+void initialisePlayers(int choice) {
+    initialisePlayer(&player1, HUMAN);
 
-
-/**
- * Parse and validates the input
- * Will accept any input containing a valid char for columns
- * and int for rows
- * e.g: e3 will be accepted as well as 3,E or E 3
- * @param pos   a pointer to the position the input is being parsed for
- * @return  1 if the input parsed to a valid a1-h8 coordinate
- */
-int parseInput(Position *pos) {
-
-    char *input = calloc(6, sizeof(char));
-
-    parseString(input, 6);
-    DEBUG("Input = '%s'\n", input);
-
-    // saving original address, so we can increment input and still be able to free() at the end of parsing
-    void *strOrigin = input;
-
-    int x = -1, y = -1;
-
-    while (*input != '\0' && (x < 0 || y < 0)) {
-        int _c = toupper(*input);
-        if (_c >= 'A' && _c <= 'H' && x < 0) {
-            x = _c - 'A';
-            input++;
-            continue;
-        }
-
-        if (*input >= '1' && *input <= '8' && y < 0) {
-            y = *input - '0' - 1;
-            input++;
-            continue;
-        }
-        input++;
+    switch (choice) {
+        case 1:
+            initialisePlayer(&player2, HUMAN);
+            break;
+        case 2:
+            initialisePlayer(&player2, COMPUTER);
+            break;
+        case 3:
+            initialisePlayer(&player1, COMPUTER);
+            initialisePlayer(&player2, COMPUTER);
+            break;
+        default:
+            system(EXIT_SUCCESS);
+            break;
     }
 
-    pos->x = (short) x;
-    pos->y = (short) y;
+    refresh();
 
-    input = strOrigin;
-    free(input);
+    players[0] = player1;
+    players[1] = player2;
 
-    return x >= 0 && y >= 0;
 }
 
 
@@ -266,13 +253,124 @@ chtype ncursesToken(Player *player) {
 // Formats log information
 void logPrint(Player *player, char *info) {
     refreshLog();
-    mvwprintw(logWin, 0, 0, "Round %d", roundCounter);
-    mvwprintw(logWin, 1, 0, "%s (", player->name);
-    waddch(logWin, ncursesToken(player));
-    wprintw(logWin, ")");
-    mvwprintw(logWin, 2, 0, "Score: %d", player->score);
+    mvwprintw(msgWindow, 0, 0, "Round %d", roundCounter);
+    mvwprintw(msgWindow, 1, 0, "%s (", player->name);
+    waddch(msgWindow, ncursesToken(player));
+    wprintw(msgWindow, ")");
+    mvwprintw(msgWindow, 2, 0, "Score: %d", player->score);
 
-    mvwprintw(logWin, logWin->_maxy - 3, 0, "%s", info);
-    mvwprintw(logWin, logWin->_maxy - 1, 0, "Enter 'exit' to quit");
-    wrefresh(logWin);
+    mvwprintw(msgWindow, msgWindow->_maxy - 3, 0, "%s", info);
+    mvwprintw(msgWindow, msgWindow->_maxy - 1, 0, "Enter 'exit' to quit");
+    wrefresh(msgWindow);
+}
+
+
+void print_menu(WINDOW *menu_win, int highlight) {
+    int x, y, i;
+
+    x = 2;
+    y = 2;
+    box(menu_win, 0, 0);
+    for (i = 0; i < n_choices; ++i) {
+        if (highlight == i + 1) /* High light the present choice */
+        {
+            wattron(menu_win, A_REVERSE);
+            mvwprintw(menu_win, y, x, "%s", choices[i]);
+            wattroff(menu_win, A_REVERSE);
+        } else
+            mvwprintw(menu_win, y, x, "%s", choices[i]);
+        ++y;
+    }
+    wrefresh(menu_win);
+}
+
+int selectMenuOption() {
+    WINDOW *menu_win;
+    int highlight = 1;
+    int choice = 0;
+    int c;
+
+    initscr();
+    clear();
+    noecho();
+    cbreak();    /* Line buffering disabled. pass on everything */
+    startx = (80 - WIDTH) / 2;
+    starty = (24 - HEIGHT) / 2;
+
+    menu_win = newwin(HEIGHT, WIDTH, starty, startx);
+    keypad(menu_win, TRUE);
+    mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
+    refresh();
+
+    print_menu(menu_win, highlight);
+    while (1) {
+        c = wgetch(menu_win);
+        switch (c) {
+            case KEY_UP:
+                if (highlight == 1)
+                    highlight = n_choices;
+                else
+                    --highlight;
+                break;
+            case KEY_DOWN:
+                if (highlight == n_choices)
+                    highlight = 1;
+                else
+                    ++highlight;
+                break;
+            case 10:
+                choice = highlight;
+                break;
+            default:
+                //                mvprintw(24, 0, "Charcter pressed is = %3d Hopefully it can be printed as '%c'", c, c);
+                refresh();
+                break;
+        }
+        print_menu(menu_win, highlight);
+        if (choice != 0)    /* User did a choice come out of the infinite loop */
+            break;
+    }
+    //    clrtoeol();
+    refresh();
+    echo();
+    //    endwin();
+    return choice;
+}
+
+void getInput(Position *inputPosition) {
+    int validInput = false;
+
+    while (!validInput) {
+
+        logPrint(currentPlayer, consoleMsg);
+
+#ifdef DEBUGMODE
+        DEBUG("validMovesCount = %d\n", validMovesCount);
+
+            // Make the computer pull a random valid move to play
+            *inputPosition = validMoves[rand() % validMovesCount];
+            DEBUG("randpos = {%i,%i}\n", inputPosition.x, inputPosition.y);
+#else
+
+        if (!parseInput(inputPosition)) {
+            snprintf(consoleMsg, CONSOLE_MSG_SIZE, "%s", "Please enter a valid field.");
+            continue;
+        }
+
+        if (getField(&gameBoard, inputPosition) != EMPTY) {
+            snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is already taken.",
+                     printInputPosition(inputPosition));
+            continue;
+        }
+#endif
+        validNeighbours = getFlippableTokens(inputPosition, currentPlayer);
+
+        if (validNeighbours.count == 0) {
+            snprintf(consoleMsg, CONSOLE_MSG_SIZE, "Field %c-%d is illegal.",
+                     printInputPosition(inputPosition));
+            continue;
+        }
+
+        validInput = true;
+    }
 }

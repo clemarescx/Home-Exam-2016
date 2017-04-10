@@ -7,20 +7,19 @@
 
 #include "board.h"
 #include "debug.h"
+//#include "player.h"
 
-typedef struct Neighbours {
+typedef struct PositionList {
     Position list[8];
     short count;
-} Neighbours;
+} PositionList;
 
 
 //int isValidMove(Player player, Position pos);
-Neighbours findValidNeighbours(Position *inputPos, Player *player);
+PositionList getFlippableTokens(Position *inputPos, Player *player);
 
-int flipDirection(Position *cPos, Position *direction, Player *player);
+int flipDirection(Position *currentPosition, Position *direction, Player *player);
 
-int getValidMoves(Player *player, Position *positions);
-
-
+int getValidMoves(Player *player, Position *possibleMoves);
 
 #endif //__LOGIC__H

@@ -7,51 +7,63 @@
 #include "inputParser.h"
 
 short playerCount = 0;
-extern WINDOW *logWin, *inputWin;
+extern WINDOW *msgWindow, *inputWindow;
 
+void initAI(Player* player);
+void promptForName(Player *player);
 /**
  * Initialise a player struct variables and name;
  * @param player
  * @return
  */
-int playerInit(Player *player) {
+int initialisePlayer(Player *player, PlayerType playerType) {
 
-    player->score = 2;
+    playerCount++;
+
     player->name = (char *) calloc(PLAYERNAME_SIZE, sizeof(char));
 
-#ifdef DEBUGMODE
-    snprintf(player->name, PLAYERNAME_SIZE, "Pl4Y3r-number-%d", playerCount + 1);
-#else
+    if(playerType == HUMAN)
+        promptForName(player);
+    else
+        snprintf(player->name, PLAYERNAME_SIZE, "Pl4Y3r-number-%d", playerCount);
 
+    player->score = 2;
+    player->type = playerType;
+
+    return 0;
+}
+
+void promptForName(Player *player){
     int y = 0;
     //this is -such- ugly code, but I don't think ncurses can do much for autowrap...
-    mvwprintw(logWin, y++, 0, "Player %d, please enter your", playerCount + 1);
-    mvwprintw(logWin, y, 0, "name");
-    wrefresh(logWin);
+    mvwprintw(msgWindow, y++, 0, "Player %d, please enter your", playerCount);
+    mvwprintw(msgWindow, y, 0, "name");
+    wrefresh(msgWindow);
 
     parseString(player->name, PLAYERNAME_SIZE);
 
     if (strlen(player->name) < 3) {
-        int max_y = getmaxy(logWin) - 5;
+        int cursor_yPos = getmaxy(msgWindow) - 5;
 
         // the cursor must be reset for every line
         // otherwise the box gets destroyed
-        mvwprintw(logWin, max_y++, 0, "'%s' was too short, so we", player->name);
-        mvwprintw(logWin, max_y++, 0, "baptized you '");
+        mvwprintw(msgWindow, cursor_yPos++, 0, "'%s' was too short, so we", player->name);
+        mvwprintw(msgWindow, cursor_yPos++, 0, "baptized you '");
 
-        wattron(logWin, A_BOLD);
-        wprintw(logWin, "Player%d", playerCount + 1);
-        wattroff(logWin, A_BOLD);
-        wprintw(logWin, "'.");
+        wattron(msgWindow, A_BOLD);
+        wprintw(msgWindow, "Player%d", playerCount);
+        wattroff(msgWindow, A_BOLD);
+        wprintw(msgWindow, "'.");
 
-        mvwprintw(logWin, max_y++, 0, "...We hope you're happy");
-        mvwprintw(logWin, max_y, 0, "about that.");
-        wrefresh(logWin);
+        mvwprintw(msgWindow, cursor_yPos++, 0, "...We hope you're happy");
+        mvwprintw(msgWindow, cursor_yPos, 0, "about that.");
+        wrefresh(msgWindow);
         //refresh();
-        snprintf(player->name, 8, "Player%i", playerCount + 1);
+        snprintf(player->name, 8, "Player%i", playerCount);
     }
-#endif
 
-    playerCount++;
-    return 0;
+}
+
+void initAI(Player* player){
+    snprintf(player->name, PLAYERNAME_SIZE, "Pl4Y3r-number-%d", playerCount + 1);
 }

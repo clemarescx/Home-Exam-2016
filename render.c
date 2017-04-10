@@ -6,13 +6,14 @@
 #include <stdlib.h>
 #include "render.h"
 
+
 extern Board gameBoard;
 const int height = 20,
         width = 50,
         starty = 0,
         startx = 0;
 
-WINDOW *boardWin, *logWin, *inputWin;
+WINDOW *boardWin, *msgWindow, *inputWindow;
 
 typedef enum edgeType {
     TOP, MIDDLE, BOTTOM
@@ -26,8 +27,8 @@ typedef enum edgeType {
  * They have been adapted to fit the project
  */
 WINDOW *create_newwin(int height, int width, int starty, int startx, char *title);
-
 void destroy_win(WINDOW *local_win);
+void drawBoardEdge(edgeType type);
 
 void initBoardWin() {
     boardWin = create_newwin(LINES, width, starty, startx, "Board");
@@ -35,18 +36,18 @@ void initBoardWin() {
 }
 
 void initLogWin() {
-    logWin = create_newwin(height, COLS - width, starty, width, "Console Log");
-    logWin->_begx++;
-    logWin->_begy++;
-    logWin->_maxx--;
-    logWin->_maxy--;
-    wrefresh(logWin);
+    msgWindow = create_newwin(height, COLS - width, starty, width, "Console Log");
+    msgWindow->_begx++;
+    msgWindow->_begy++;
+    msgWindow->_maxx--;
+    msgWindow->_maxy--;
+    wrefresh(msgWindow);
 }
 
 void initInputWin() {
-    inputWin = create_newwin(LINES - height, COLS - width, height, width, "Input");
-    mvwprintw(inputWin, 1, 1, "> ");
-    wrefresh(inputWin);
+    inputWindow = create_newwin(LINES - height, COLS - width, height, width, "Input");
+    mvwprintw(inputWindow, 1, 1, "> ");
+    wrefresh(inputWindow);
 }
 
 int initRender() {
@@ -85,7 +86,6 @@ void destroy_win(WINDOW *local_win) {
 }
 
 
-void drawBoardEdge(edgeType type);
 
 /**
  * This is the same code from the original board.c class
@@ -156,7 +156,6 @@ void drawBoardEdge(edgeType type) {
     for (int i = 0; i < BOARD_SIZE - 1; i++) {
         for (int j = 0; j < 3; ++j) {
             waddch(boardWin, 113 | A_ALTCHARSET);
-
         }
         waddch(boardWin, middleJoint);
     }
@@ -172,26 +171,26 @@ void drawBoardEdge(edgeType type) {
  * box.
  */
 void refreshLog() {
-    werase(logWin);
-    logWin->_begx--;
-    logWin->_begy--;
-    logWin->_maxx++;
-    logWin->_maxy++;
-    box(logWin, 0, 0);
-    setTitle("Console Log", logWin);
-    wrefresh(logWin);
+    werase(msgWindow);
+    msgWindow->_begx--;
+    msgWindow->_begy--;
+    msgWindow->_maxx++;
+    msgWindow->_maxy++;
+    box(msgWindow, 0, 0);
+    setTitle("Console Log", msgWindow);
+    wrefresh(msgWindow);
 
-    logWin->_begx++;
-    logWin->_begy++;
-    logWin->_maxx--;
-    logWin->_maxy--;
-    wmove(logWin, 0, 0);
-    wrefresh(logWin);
+    msgWindow->_begx++;
+    msgWindow->_begy++;
+    msgWindow->_maxx--;
+    msgWindow->_maxy--;
+    wmove(msgWindow, 0, 0);
+    wrefresh(msgWindow);
 }
 
 void terminateRender() {
-    destroy_win(logWin);
+    destroy_win(msgWindow);
     destroy_win(boardWin);
-    destroy_win(inputWin);
+    destroy_win(inputWindow);
     endwin();
 }

@@ -6,14 +6,21 @@
 
 #define PLAYERNAME_SIZE 15
 
+
+typedef enum PlayerType {
+    HUMAN,
+    COMPUTER
+} PlayerType;
+
+
 // struct to store player information
 typedef struct Player {
     char *name;
     Field token;
     int score;
-
+    PlayerType type;
 } Player;
 
 #endif
 
-int playerInit(Player *player);
+int initialisePlayer(Player *player, PlayerType type);
