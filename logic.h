@@ -22,4 +22,7 @@ int flipDirection(Position *currentPosition, Position *direction, Player *player
 
 int getValidMoves(Player *player, Position *possibleMoves, Board*);
 
+void updateScores(Player *player1, Player *player2, Board *gBoard);
+
+
 #endif //__LOGIC__H

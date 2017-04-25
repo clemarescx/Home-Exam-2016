@@ -19,9 +19,7 @@ Player simulate(Position *startingMove, Player player, Player opponent);
 void playRound(Position *pPosition, Player *pPlayer, Player *opponent, PositionList *flippable);
 
 
-Position findBestMove(Player *pPlayer, Player *pOpponent, Position *validMoves, int validMovesCount) {
-    player = *pPlayer;
-    opponent = *pOpponent;
+Position findBestMove(Player player, Player opponent, Position *validMoves, int validMovesCount) {
     int bestMoveRank = 0;
     Position bestMove = {.x = -1, .y = -1};
 
@@ -42,7 +40,7 @@ Position findBestMove(Player *pPlayer, Player *pOpponent, Position *validMoves, 
 int getMoveRank(Position *pos, Player *player, Player *opponent) {
 
     int moveRank = 0;
-    for (int j = 0; j < MCrange; j++) {
+    for (int i = 0; i < MCrange; i++) {
         Player winner = simulate(pos, *player, *opponent);
         if (player->token == winner.token)
             moveRank++;
@@ -53,7 +51,7 @@ int getMoveRank(Position *pos, Player *player, Player *opponent) {
 
 //////
 Player simulate(Position *startingMove, Player player, Player opponent) {
-    Player winner = {.name = "no winner", .score = 0, .token = EMPTY, .type = HUMAN},
+    Player winner,
             *currentPlayer,
             *previousPlayer;
 
@@ -67,15 +65,17 @@ Player simulate(Position *startingMove, Player player, Player opponent) {
     currentPlayer = &opponent;
 
     int moveCount;
-//    bool gameOver = false;
-    Position *validMoves = (Position *) calloc(32, sizeof(Position));
+    //    bool gameOver = false;
+    Position *validMoves;
+
 
     while (true) {
+        validMoves = (Position *) calloc(32, sizeof(Position));
 
         moveCount = getValidMoves(currentPlayer, validMoves, &simulationBoard);
 
         if (moveCount == 0) {
-            if( currentPlayer == previousPlayer){
+            if (currentPlayer == previousPlayer) {
                 winner = (player.score > opponent.score) ? player : opponent;
                 break;
             }
@@ -96,11 +96,9 @@ Player simulate(Position *startingMove, Player player, Player opponent) {
         previousPlayer = currentPlayer;
         currentPlayer = (currentPlayer == &player) ? &opponent : &player;
 
-        if (getValidMoves(currentPlayer, validMoves, &simulationBoard) > 0) {
+        /*if (getValidMoves(currentPlayer, validMoves, &simulationBoard) > 0) {
             continue;
-        }
-
-
+        }*/
     }
 
     free(validMoves);
@@ -116,12 +114,11 @@ void playRound(Position *pPosition, Player *pPlayer, Player *opponent, PositionL
 
     for (int i = 0; i < flippable->count; ++i) {
         Position direction = flippable->list[i];
-        flippedCount += flipDirection(pPosition, &direction, pPlayer, &simulationBoard) - 2;
+        flippedCount += flipDirection(pPosition, &direction, pPlayer, &simulationBoard);
     }
 
-    pPlayer->score += flippedCount + 1; // include the current move
+    pPlayer->score += flippedCount; // include the current move
     opponent->score -= flippedCount;
-
 }
 
 

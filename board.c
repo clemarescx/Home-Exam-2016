@@ -52,6 +52,7 @@ Field getField(Board *board, Position *position) {
 int poscmp(Position *pos1, Position *pos2) {
     return (pos1->x == pos2->x) && (pos1->y == pos2->y);
 }
+
 //Demonstrates board functionality
 /*
 int main(void)

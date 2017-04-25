@@ -70,8 +70,6 @@ int main(void) {
 #endif
     srand((unsigned int) time(NULL));
 
-
-
     // #########################################################
 
     int choice = selectMenuOption();
@@ -107,7 +105,7 @@ int main(void) {
     //#######################
     while (running) {
 
-        roundCounter += !playerSwitch;
+        roundCounter++;
 
         // initialised with invalid values
         inputPosition.x = -1;
@@ -122,20 +120,21 @@ int main(void) {
         if (currentPlayer->type == HUMAN) {
             getInput(&inputPosition);
         } else {
-            inputPosition = findBestMove(currentPlayer, opponent, validMoves, validMovesCount);
+            inputPosition = findBestMove(*currentPlayer, *opponent, validMoves, validMovesCount);
+            validNeighbours = getFlippableTokens(&inputPosition, currentPlayer, &gBoard);
         }
 
         addMoveToLog(*currentPlayer, inputPosition); //record the current move
 
-        int flippedCount = 0;
-
+        //        int flippedCount = 0;
         for (int i = 0; i < validNeighbours.count; ++i) {
             Position direction = validNeighbours.list[i];
-            flippedCount += flipDirection(&inputPosition, &direction, currentPlayer, &gBoard) - 2;
+            //            flippedCount += flipDirection(&inputPosition, &direction, currentPlayer, &gBoard) - 2;
+            flipDirection(&inputPosition, &direction, currentPlayer, &gBoard);
         }
-
-        currentPlayer->score += flippedCount + 1; // include the current move
-        opponent->score -= flippedCount;
+        //        currentPlayer->score += flippedCount +1; // include the current move
+        //        opponent->score -= flippedCount;
+        updateScores(currentPlayer, opponent, &gBoard);
 
         _printBoard(&gBoard);
 
@@ -152,8 +151,7 @@ int main(void) {
             playerSwitch = !playerSwitch; // toggle once to cancel the end-loop toggle;
         }
 
-        if (opponent->score == 0 ||
-            (!getValidMoves(opponent, validMoves, &gBoard) && !getValidMoves(currentPlayer, validMoves, &gBoard))) {
+        if (!getValidMoves(opponent, validMoves, &gBoard) && !getValidMoves(currentPlayer, validMoves, &gBoard)) {
 
             //game over
             running = !running;

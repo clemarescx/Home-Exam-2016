@@ -9,7 +9,7 @@
 #ifndef HOME_EXAM_2016_AI_LOGIC_H
 #define HOME_EXAM_2016_AI_LOGIC_H
 
-Position findBestMove(Player *, Player *, Position *validMoves, int validMovesCount);
+Position findBestMove(Player, Player, Position *validMoves, int validMovesCount);
 /**
  * - get all valid moves for Player
  * - for each move
