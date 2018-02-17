@@ -53,6 +53,15 @@ fabric.properties
 # .idea/misc.xml
 # *.ipr
 
-cmake-build-debug
+### C binary files ###
+*.[oa]
+*.out
+*~
+
+### Project files ###
+othello
+.swp
+/cmake-build-debug/
+/gamelogs/
+/.idea/
 .vscode
-.idea

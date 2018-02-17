@@ -1,22 +1,26 @@
 #ifndef __PLAYER_H__
 #define __PLAYER_H__
 
-// struct to store a position on the board
-short playerCount = 0;
+#include "board.h"
+#include "debug.h"
 
-typedef struct Position {
-    short signed x;
-    short signed y;
-} Position;
+#define PLAYERNAME_SIZE 15
+
+
+typedef enum PlayerType {
+    HUMAN,
+    COMPUTER
+} PlayerType;
+
 
 // struct to store player information
 typedef struct Player {
     char *name;
     Field token;
-
-    short signed score;
-    Position log[64];
-
+    int score;
+    PlayerType type;
 } Player;
 
 #endif
+
+int initialisePlayer(Player *player, PlayerType type);
