@@ -52,3 +52,7 @@ fabric.properties
 # modules.xml
 # .idea/misc.xml
 # *.ipr
+
+cmake-build-debug
+.vscode
+.idea
