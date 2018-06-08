@@ -65,3 +65,5 @@ othello
 /gamelogs/
 /.idea/
 .vscode
+
+build/
